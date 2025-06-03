@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\TransaksiController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -16,3 +17,8 @@ use Illuminate\Support\Facades\Route;
 Route::get('/', function () {
     return view('welcome');
 });
+
+Route::get('/bayar', [TransaksiController::class, 'showPaymentForm']);
+Route::post('/bayar', [TransaksiController::class, 'processPayment']);
+
+Route::get('/transaksi', [TransaksiController::class, 'index']);

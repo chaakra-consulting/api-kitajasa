@@ -38,9 +38,12 @@ Route::post('/auth', [AuthController::class, 'login']);
 Route::post('/customer/create', [CustomerController::class, 'create']);
 Route::post('/vendor/create', [VendorController::class, 'create']);
 
+Route::get('/reverse-geocode', [TransaksiController::class, 'reverseGeocode']);
+
 Route::middleware(['auth:sanctum'])->group(function () {
     //vendors url
     Route::get('/vendor', [VendorController::class, 'index']);
+    Route::get('/vendor/by-category', [VendorController::class, 'getByCategory']);
     Route::put('/vendor/update/{id}', [VendorController::class, 'update']);
     Route::delete('/vendor/delete/{id}', [VendorController::class, 'delete']);
     //customers url
@@ -61,6 +64,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::get('/transaksi', [TransaksiController::class, 'index']);
     Route::post('/transaksi/create', [TransaksiController::class, 'create']);
     Route::delete('/transaksi/delete/{id}', [TransaksiController::class, 'delete']);
+    Route::post('/get-snap-token', [TransaksiController::class, 'getSnapToken']);
     //detail transaksi url
     Route::get('/detail_transaksi/{id}', [DetailTransaksiController::class, 'index']);
     Route::post('/detail_transaksi/create/{id}', [DetailTransaksiController::class, 'create']);
