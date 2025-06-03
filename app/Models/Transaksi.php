@@ -21,4 +21,19 @@ class Transaksi extends Model
         'status_transaksi',
         'link_pembayaran'
     ];
+
+    public function vendor()
+    {
+        return $this->belongsTo(Vendor::class, 'id_vendor', 'id_vendor');
+    }
+
+    public function customer()
+    {
+        return $this->belongsTo(Customer::class, 'id_customer', 'id_customer');
+    }
+
+    public function detailTransaksi()
+    {
+        return $this->hasMany(DetailTransaksi::class, 'id_transaksi');
+    }
 }

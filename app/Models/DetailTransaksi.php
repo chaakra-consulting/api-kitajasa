@@ -19,4 +19,9 @@ class DetailTransaksi extends Model
         'jumlah',
         'catatan_tambahan'
     ];
+
+    public function layanan()
+    {
+        return $this->belongsTo(Layanan::class, 'id_layanan', 'id_layanan');
+    }
 }

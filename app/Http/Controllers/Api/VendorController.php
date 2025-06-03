@@ -3,9 +3,11 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\Transaksi;
 use App\Models\User;
 use App\Models\Vendor;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
@@ -20,6 +22,83 @@ class VendorController extends Controller
             $results = [
                 'results' => true,
                 'data' => $get_vendor,
+                'message' => 'Success get data vendor'
+            ];
+
+            return response()->json($results, 200);
+        } catch (\Exception $ex) {
+            return response()->json(['results' => false, 'message' => 'Error get data ' . $ex], 500);
+        }
+    }
+
+    public function getByCategory(Request $request)
+    {
+        $user = Auth::user();
+        $validator = Validator::make($request->all(), [
+            'category_id' => 'required|exists:category,id',
+            'order_by' => 'nullable|in:terdekat,terlaris,rating',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json($validator->errors(), 422);
+        }
+        
+        try {
+            switch($request->order_by){
+                case 'terlaris':
+                    $vendors = Vendor::select('vendor.id_vendor','vendor.id_user','vendor.nama','vendor.deskripsi','vendor.alamat','vendor.kelurahan','vendor.kecamatan','vendor.kota','vendor.latlon','vendor.nik','vendor.ktp_vendor','vendor.logo_vendor','vendor.foto_vendor','vendor.poin','vendor.isverified','vendor.created_at', 'vendor.updated_at')
+                    ->join('layanan', 'vendor.id_vendor', '=', 'layanan.id_vendor')
+                    ->leftJoin('transaksi', function ($join) {
+                        $join->on('vendor.id_vendor', '=', 'transaksi.id_vendor')
+                             ->where('transaksi.status_transaksi', 'pekerjaan selesai');
+                    })
+                    ->where('layanan.id_category', $request->category_id)
+                    ->selectRaw('COUNT(transaksi.id_transaksi) as total_transaksi')
+                    ->groupBy('vendor.id_vendor','vendor.id_user','vendor.nama','vendor.deskripsi','vendor.alamat','vendor.kelurahan','vendor.kecamatan','vendor.kota','vendor.latlon','vendor.nik','vendor.ktp_vendor','vendor.logo_vendor','vendor.foto_vendor','vendor.poin','vendor.isverified','vendor.created_at', 'vendor.updated_at')
+                    ->orderByDesc('total_transaksi')
+                    ->get();
+                                              
+                    break;
+                case 'rating':
+                    $vendors = Vendor::select('vendor.id_vendor','vendor.id_user','vendor.nama','vendor.deskripsi','vendor.alamat','vendor.kelurahan','vendor.kecamatan','vendor.kota','vendor.latlon','vendor.nik','vendor.ktp_vendor','vendor.logo_vendor','vendor.foto_vendor','vendor.poin','vendor.isverified','vendor.created_at', 'vendor.updated_at')
+                    ->join('layanan', 'vendor.id_vendor', '=', 'layanan.id_vendor')
+                    ->leftJoin('transaksi', function ($join) {
+                        $join->on('vendor.id_vendor', '=', 'transaksi.id_vendor')
+                             ->where('transaksi.status_transaksi', 'pekerjaan selesai');
+                    })
+                    ->where('layanan.id_category', $request->category_id)
+                    ->selectRaw('ROUND(AVG(transaksi.rating), 1) as average_rating')
+                    ->groupBy('vendor.id_vendor','vendor.id_user','vendor.nama','vendor.deskripsi','vendor.alamat','vendor.kelurahan','vendor.kecamatan','vendor.kota','vendor.latlon','vendor.nik','vendor.ktp_vendor','vendor.logo_vendor','vendor.foto_vendor','vendor.poin','vendor.isverified','vendor.created_at', 'vendor.updated_at')
+                    ->orderByDesc('average_rating')
+                    ->get();
+                    break;
+                default:
+                    $latlonCust = $user->customer && !in_array($user->customer->latlon, [null, '-']) 
+                    ? explode(',', $user->customer->latlon) 
+                    : null;                
+                    $vendors = Vendor::select('vendor.*')
+                        ->when($latlonCust, function ($query) use ($latlonCust) {
+                            $lat = (float) $latlonCust[0];
+                            $lon = (float) $latlonCust[1];
+                    
+                            $haversine = "(6371 * acos(
+                                cos(radians($lat)) * cos(radians(SUBSTRING_INDEX(vendor.latlon, ',', 1))) *
+                                cos(radians(SUBSTRING_INDEX(vendor.latlon, ',', -1)) - radians($lon)) +
+                                sin(radians($lat)) * sin(radians(SUBSTRING_INDEX(vendor.latlon, ',', 1)))
+                            ))";
+                    
+                            $query->selectRaw("$haversine AS distance")
+                                ->orderBy('distance');
+                        })
+                        // ->groupBy('vendor.id')
+                        ->get();
+            
+                    break;
+                
+            }
+            $results = [
+                'results' => true,
+                'data' => $vendors,
                 'message' => 'Success get data vendor'
             ];
 
